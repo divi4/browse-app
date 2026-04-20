@@ -4,9 +4,6 @@ Hey Wildlife team!
 
 ## The files
 
-### flutter_Base_Project  
-All files for building the project are found here.  
-
 ### .dart_tool, build and .flutter-plugins  
 These files only appear during buildtime (when you execute the project). Sometimes you will 
 face issues where Flutter is unable to delete these files to rebuild the project due to 
