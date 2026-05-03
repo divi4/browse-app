@@ -149,22 +149,26 @@ class _LandownerFormTabs extends State<LandownerFormTabs> with SingleTickerProvi
       };
 
       try {
-        debugPrint(jsonEncode(finalPayload));
+        // debugPrint(jsonEncode(finalPayload));
         final response = await http.post(
           Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/landownerAPI'),
-          headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ${user.idToken}"
+          },
           body: jsonEncode(finalPayload),
         );
-
-        if (response.statusCode == 201) {
-          final responseData = jsonDecode(response.body);
-          print('Registration created for userID: ${responseData['userID']}');
-        } else {
-          print('Server error: ${response.statusCode}');
-          print(response.body);
-        }
+        
+        // For debugging, you can print the response status and body
+        // if (response.statusCode == 201) {
+        //   final responseData = await jsonDecode(response.body);
+        //   debugPrint('Registration created for userID: ${responseData['userID']}');
+        // } else {
+        //   debugPrint('Server error: ${response.statusCode}');
+        //   debugPrint(response.body);
+        // }
       } catch (error) {
-        print('Failed to send registration data: $error');
+        debugPrint('Failed to send registration data: $error');
       }
 
       Navigator.of(context, rootNavigator: true).pushNamed(
@@ -238,6 +242,7 @@ class _LandDetailsTabState extends State<LandDetailsTab> with AutomaticKeepAlive
             orientation: OptionsOrientation.wrap,
             onChanged: (val) => print(val),
           ),
+
           const SizedBox(height: 16),
           FormBuilderTextField(
             name: 'address',
@@ -251,6 +256,7 @@ class _LandDetailsTabState extends State<LandDetailsTab> with AutomaticKeepAlive
             ]),
             onChanged: (val) => print(val),
           ),
+
           const SizedBox(height: 16),
           FormBuilderTextField(
             name: 'postcode',
@@ -266,15 +272,18 @@ class _LandDetailsTabState extends State<LandDetailsTab> with AutomaticKeepAlive
             ]),
             onChanged: (val) => print(val),
           ),
+
           const SizedBox(height: 16),
           FormBuilderTextField(
             name: 'accessDetails',
             decoration: const InputDecoration(
               labelText: 'Please detail how to access your property (optional)',
+              hintText: 'e.g. Access via the front gate, follow the path to the right.',
               contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
             ),
             onChanged: (val) => print(val),
           ),
+
           const SizedBox(height: 16),
           FormBuilderTextField(
             key: widget.phoneFieldKey,
@@ -330,6 +339,7 @@ class _AvalabilityTabState extends State<AvailabilityTab> with AutomaticKeepAliv
             orientation: OptionsOrientation.wrap,
             onChanged: (val) => print(val),
           ),
+
           const SizedBox(height: 16),
           FormBuilderCheckboxGroup<String>(
             name: 'timesData',
@@ -395,13 +405,12 @@ class _PreferencesTabState extends State<PreferencesTab> with AutomaticKeepAlive
             onChanged: (val) => print(val),
           ),
 
-          // I added: optional restrictions text input
           const SizedBox(height: 16),
           FormBuilderTextField(
             name: 'restrictions',
             decoration: const InputDecoration(
               labelText: 'Restrictions (optional)',
-              hintText: 'e.g., Do not touch proteas near the north fence.',
+              hintText: 'e.g. Do not touch the gumtree near the north fence.',
               contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
             ),
             maxLines: 4,
@@ -410,9 +419,6 @@ class _PreferencesTabState extends State<PreferencesTab> with AutomaticKeepAlive
               final t = (text ?? '').trim();
               return t.isEmpty ? null : t;
             },
-            validator: FormBuilderValidators.compose([
-              FormBuilderValidators.maxLength(500),
-            ]),
             onChanged: (val) {
               debugPrint(val);
             },
@@ -423,6 +429,7 @@ class _PreferencesTabState extends State<PreferencesTab> with AutomaticKeepAlive
             name: 'extraDetails',
             decoration: const InputDecoration(
               labelText: 'Please add extra details here (optional)',
+              hintText: 'Any specific instructions or notes for gatherers.',
               contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
             ),
             onChanged: (val) => print(val),

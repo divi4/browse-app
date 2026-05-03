@@ -441,7 +441,10 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
         debugPrint(jsonEncode(finalPayload));
         final response = await http.post(
           Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'),
-          headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ${widget.user.idToken}"
+          },
           body: jsonEncode(finalPayload),
         );
 

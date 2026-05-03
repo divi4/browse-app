@@ -52,9 +52,14 @@ class LandownerHomePage extends StatefulWidget {
   State<LandownerHomePage> createState() => _RequestBoardState();
 }
 
-Future<List<Landowner>> fetchRequests() async {
+Future<List<Landowner>> fetchRequests(User user) async {
   try {
-    final response = await http.get(Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/landownerAPI'));
+    final response = await http.get(
+      Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/landownerAPI'),
+      headers: {
+        "Authorization": "Bearer ${user.idToken}"
+      },
+    );
 
     final Map<String, dynamic> responseData = json.decode(response.body);
 
@@ -88,7 +93,7 @@ class _RequestBoardState extends State<LandownerHomePage>
   @override
   void initState() {
     super.initState();
-    futureRequests = fetchRequests();
+    futureRequests = fetchRequests(widget.user);
     _fadeController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
@@ -427,7 +432,7 @@ class _LandownerProfileState extends State<LandownerProfile> {
             ? SelectableText("$address, $postcode")
             // Will probably reimplement this to dynamically call for address once request accepted, for security
             // TODO lookup postcode for name of suburb to add to address
-            : SelectableText("Postcode: $postcode"),
+            : SelectableText("(Revealed upon pressing contact below)\nPostcode: $postcode"),
         ]
       ),
     );

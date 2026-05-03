@@ -49,12 +49,10 @@ class GathererHomePage extends StatefulWidget {
   final User user;
 
   @override
-  State<GathererHomePage> createState() => _RequestBoardState();
+  State<GathererHomePage> createState( ) => _RequestBoardState();
 }
 
 Future<List<Request>> fetchRequests(User user) async {
-  print('ID Token: ${user.idToken}');
-  print('Access Token: ${user.accessToken}');
   try {
     final response = await http.get(
       Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'),
@@ -603,7 +601,7 @@ Future<void> _maybeShowOfflineNotice() async {
                   request.updateState = 2;
                   
                   // Sends updated request to database        
-                  updateRequest(request);
+                  updateRequest(request, widget.user);
                   });
                   },
               child: Text(
@@ -772,13 +770,16 @@ bool isStale(timelapse) {
   return timeParts[0] > 0 || timeParts[1] > 15;
 }
 
-void updateRequest(Request updatedRequest) async {
+void updateRequest(Request updatedRequest, User user) async {
   try {
     final response = await http.patch(
       Uri.parse(
         'https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI/${updatedRequest.request_ID}/2'
         ),
-      headers: {"Content-Type": "application/json"},
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${user.idToken}",
+        },
       body: jsonEncode(updatedRequest.toJson()),
     );
     final responseData = jsonDecode(response.body);

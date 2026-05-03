@@ -17,7 +17,7 @@ class Landowner {
     required this.timesData,
     required this.warningRequired,
     this.extraDetails,
-    this.restrictions, // CHANGE: new optional field
+    this.restrictions,
   });
 
   // ? Allows null
@@ -35,7 +35,7 @@ class Landowner {
   List<LandownerTimes> timesData;
   bool warningRequired;
   String? extraDetails;
-  String? restrictions; // CHANGE: new field
+  String? restrictions;
 
   // Helper method to create an empty request
   factory Landowner.empty() {
@@ -53,7 +53,7 @@ class Landowner {
       timesData: [],
       warningRequired: false,
       extraDetails: '',
-      restrictions: '', // CHANGE: default empty
+      restrictions: '',
     );
   }
 
@@ -153,7 +153,7 @@ class Landowner {
         timesData: _parseTimeItems(requestJson['timesData']),
         warningRequired: requestJson['warningRequired'] ?? '0',
         extraDetails: requestJson['extraDetails']?.toString(),
-        restrictions: requestJson['restrictions']?.toString(), // CHANGE: map from JSON
+        restrictions: requestJson['restrictions']?.toString(),
       );
     } catch (e) {
       print('Error parsing Landowner: $e');
@@ -173,7 +173,7 @@ class Landowner {
       'warningRequired': warningRequired,
       'accessDetails': accessDetails,
       'extraDetails': extraDetails,
-      'restrictions': restrictions, // CHANGE: include in JSON
+      'restrictions': restrictions,
       'browseData': browseData.map((e) => e.toJson()).toList(),
       'daysData': daysData.map((e) => e.toJson()).toList(),
       'timesData': timesData.map((e) => e.toJson()).toList(),
