@@ -16,7 +16,7 @@ class LandownerRegistration extends StatelessWidget {
   const LandownerRegistration({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {  
     return MaterialApp(
       title: 'Landholder registration',
       theme: ThemeData(

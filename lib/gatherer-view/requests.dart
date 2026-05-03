@@ -205,49 +205,12 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
           appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             title: Text(appTitle),
-            // Icon to move to caretaker order request page
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                tooltip: 'Make a order request',
-                onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(
-                    '/caretaker', 
-                    arguments: {'user': widget.user},
-                    );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.edit_location_outlined),
-                tooltip: 'List/Register a listing',
-                onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(
-                    '/landowner-registration', 
-                    arguments: {'user': widget.user},
-                    );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.search),
-                tooltip: 'Explore browse',
-                onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(
-                    '/education'
-                    );
-                },
-              ),
-            ],
           ),
-          drawer: UserDrawer(username: username, user: widget.user,),
+          drawer: UserDrawer(
+            username: username,
+            user: widget.user,
+            currentRoute: '/request-board'
+          ),
           // Request board area
           body: FutureBuilder<List<Request>>(
             future: futureRequests,

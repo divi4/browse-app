@@ -97,45 +97,12 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
             appBar: AppBar(
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               title: Text(appTitle),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.pageview_outlined),
-                  tooltip: 'View the request board',
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pushNamed(
-                      '/request-board',
-                      arguments: {'user': widget.user},
-                      );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_location_outlined),
-                  tooltip: 'Register/View your listing',
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).pushNamed(
-                      '/landowner-registration', 
-                      arguments: {'user': widget.user},
-                      );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: 'Explore browse',
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    ).pushNamed(
-                      '/education'
-                      );
-                  },
-                ),
-              ],
             ),
-            drawer: UserDrawer(username: username, user: widget.user),
+            drawer: UserDrawer(
+              username: username,
+              user: widget.user,
+              currentRoute: '/caretaker'
+            ),
             body: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: FormBuilder(

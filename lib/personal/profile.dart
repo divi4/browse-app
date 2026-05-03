@@ -251,37 +251,11 @@ class _Profile extends State<Profile> {
           appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             title: Text(appTitle),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.pageview_outlined),
-                tooltip: 'View the request board',
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed(
-                    '/request-board',
-                    arguments: {'user': widget.user},
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                tooltip: 'Make a order request',
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true)
-                      .pushNamed('/caretaker', arguments: {'user': widget.user});
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.search),
-                tooltip: 'Explore browse',
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed('/education');
-                },
-              ),
-            ],
           ),
           drawer: UserDrawer(
             username: widget.user.claims['given_name'].toString().toCapitalCase(),
             user: widget.user,
+            currentRoute: '/profile',
           ),
 
           // Profile body

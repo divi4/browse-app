@@ -193,70 +193,8 @@ class _RequestBoardState extends State<LandownerHomePage>
           appBar: AppBar(
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             title: Text(appTitle),
-            actions: [
-               // Icon to move to gatherer request board page
-              IconButton(
-                icon: const Icon(Icons.pageview_outlined),
-                tooltip: 'View the request board',
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed(
-                    '/request-board',
-                    arguments: {'user': widget.user},
-                    );
-                },
-              ),
-               // Icon to move to caretaker order request page
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                tooltip: 'Make a order request',
-                onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(
-                    '/caretaker', 
-                    arguments: {'user': widget.user},
-                    );
-                },
-              ),
-               // Icon to move to browse info page
-              IconButton(
-                icon: const Icon(Icons.search),
-                tooltip: 'Explore browse',
-                onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed(
-                    '/education'
-                    );
-                },
-              ),
-              // Icon to move to create new landowner listing
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: Color.fromRGBO(245, 245, 237, 1),
-                  minimumSize: Size(101, 38),
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(7)),
-                  ),
-                ),
-                child: Text(
-                  'Create/Update listing',
-                  style: TextStyle(color: Color.fromRGBO(0, 4, 7, 0.881)),
-                  textAlign: TextAlign.center,
-                ),
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed(
-                    '/landowner-registration',
-                    arguments: {'user': widget.user},
-                    );
-                },
-              )
-            ],
           ),
-          drawer: UserDrawer(username: username, user: widget.user),
+          drawer: UserDrawer(username: username, user: widget.user, currentRoute: '/landowner'),
           // Profile board area
           body: FutureBuilder<List<Landowner>>(
             
