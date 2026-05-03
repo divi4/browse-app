@@ -71,17 +71,16 @@ class Request {
     if (itemsData == null || itemsData is! List<dynamic>) {
       return [];
     }
-    
+  
     return itemsData.map((item) {
       try {
         return DeliveryItems.fromJson(item as Map<String, dynamic>);
       } catch (e) {
-        print('Error parsing delivery item: $e');
+        print('/model/request _parseDeliveryItems: Error parsing delivery item: $e');
         // Return a empty DeliveryItems instance if parsing fails
-        return DeliveryItems(name: '', quantity: 0, type: '');
+        return DeliveryItems(name: 'Unknown Item', quantity: 0, type: 'branch/es');
       }
-    }).toList();
-  }
+    }).toList();  }
 
   factory Request.fromJson(Map<String, dynamic> requestJson) {
     try {
@@ -99,7 +98,7 @@ class Request {
         animal_ID: requestJson['animal_ID']?.toString() ?? '',
       );
     } catch (e) {
-      print('Error parsing Request: $e');
+      print('/model/request Request.fromJson: Error parsing Request: $e');
       return Request.empty();
     }
   }

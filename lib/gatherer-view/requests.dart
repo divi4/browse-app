@@ -6,6 +6,8 @@ import 'dart:math';
 import '../templates/drawer.dart';
 import '../templates/browseList.dart';
 import '../auth/auth.dart';
+import '../auth/user_service.dart';
+import '../auth/config.dart';
 
 import '../models/request.dart';
 import '../models/response.dart';
@@ -50,19 +52,28 @@ class GathererHomePage extends StatefulWidget {
   State<GathererHomePage> createState() => _RequestBoardState();
 }
 
-Future<List<Request>> fetchRequests() async {
+Future<List<Request>> fetchRequests(User user) async {
+  print('ID Token: ${user.idToken}');
+  print('Access Token: ${user.accessToken}');
   try {
-    final response = await http.get(Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'));
+    final response = await http.get(
+      Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${user.idToken}",
+      },
+    );
 
     final Map<String, dynamic> responseData = json.decode(response.body);
 
     final Response requestResponse = Response.fromJson(responseData);
+    
     if (response.statusCode == 200) {
       // Requests returned as an array
       return requestResponse.items; 
 
     } else {
-      throw Exception('Failed to load requests: ${response.statusCode}');
+      throw Exception('Failed to load requests: ${response.statusCode} - ${response.body}');
     }
   } catch(e) {
     throw Exception('Error: $e');
@@ -73,7 +84,7 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
 
-  late Future<List<Request>> futureRequests;
+  late Future<List<Request>>? futureRequests;
 
   @override
   void dispose() {
@@ -84,7 +95,7 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    futureRequests = fetchRequests();
+    _loadRequests();
     _fadeController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
@@ -96,6 +107,12 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
 
     // Start animations
     _fadeController.forward();
+  }
+
+  void _loadRequests() {
+    setState(() {
+      futureRequests = fetchRequests(widget.user);
+    });
   }
 
   // Args passed from Request board initial state widget
@@ -253,9 +270,10 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
 
               // Filter the requests before build
               final filteredRequests = allRequests.where((request) {
-                final isUserAssigned = widget.user.claims['username'] == request.assigned_User_ID;
-                return isActive(request.status_Num) || 
-                      (!isActive(request.status_Num) && isUserAssigned);
+                final currentUser =  widget.user.claims['username'] ?? '';
+                final isUserAssigned = request.assigned_User_ID == currentUser;
+
+                return isActive(request.status_Num) || isUserAssigned;
               }).toList();
 
               // Sorts listing by postcode low to high after subtracting user's postcode
@@ -307,7 +325,6 @@ class DetailedRequest extends StatefulWidget {
 
 class _DetailedRequestState extends State<DetailedRequest> {
 
-  // I added: once-per-session offline reminder for no reception
 Future<void> _maybeShowOfflineNotice() async {
   final prefs = await SharedPreferences.getInstance();
   final shown = prefs.getBool('offlineNoticeShown') ?? false;
@@ -336,7 +353,6 @@ Future<void> _maybeShowOfflineNotice() async {
   }
 }
 
-// I added: once-per-session environmental care reminder (Scrum-197)
   Future<void> _maybeShowEnvironmentalCareNotice() async {
     final prefs = await SharedPreferences.getInstance();
     final shown = prefs.getBool('environmentalCareNoticeShown') ?? false;
@@ -578,12 +594,10 @@ Future<void> _maybeShowOfflineNotice() async {
                   borderRadius: BorderRadius.all(Radius.circular(7)),
                 ),
               ),
-              // I added: offline reminder before accepting (Scrum-191)
               onPressed: () async {
                 await _maybeShowOfflineNotice(); 
                 await _maybeShowEnvironmentalCareNotice();
                 
-                // I added Accept button action (unchanged)
                 setState(() {
                   request.assignGatherer = widget.user.claims['username'];
                   request.updateState = 2;

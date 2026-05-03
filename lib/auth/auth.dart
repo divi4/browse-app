@@ -12,9 +12,11 @@ class User {
   bool sessionValid;
   String? userSub;
   Map<String, dynamic> claims;
+  final String idToken;
+  final String accessToken;
 
   User(this.username, this.userConfirmed, this.sessionValid, this.userSub,
-      this.claims);
+      this.claims, this.idToken, this.accessToken,);
 }
 
 class CognitoManager {
@@ -46,7 +48,7 @@ class CognitoManager {
       final result = await userPool.signUp(email, password,
           userAttributes: userAttributes);
       return User(
-          email, result.userConfirmed ?? false, false, result.userSub, {});
+          email, result.userConfirmed ?? false, false, result.userSub, {}, '', '');
     } catch (e) {
       throw CognitoServiceException(e.toString());
     }
@@ -73,8 +75,23 @@ class CognitoManager {
       var claims = <String, dynamic>{};
       claims.addAll(session.idToken.payload);
       claims.addAll(session.accessToken.payload);
-      return User(email, true, session.isValid(),
-          session.idToken.getSub() ?? "", claims);
+
+      final idTokenString = session.idToken.getJwtToken() ?? '';
+      final accessTokenString = session.accessToken.getJwtToken() ?? '';
+
+      if (idTokenString.isEmpty || accessTokenString.isEmpty) {
+        throw CognitoClientException("Failed to get valid tokens");
+      }
+
+      return User(
+            email, 
+            true, 
+            session.isValid(),
+            session.idToken.getSub() ?? "", 
+            claims,
+            idTokenString,
+            accessTokenString,
+          );
     } catch (e) {
       throw CognitoServiceException(e.toString());
     }

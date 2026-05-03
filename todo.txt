@@ -1,0 +1,37 @@
+Priorties, DEADLINE: 14th June (8 weeks)
+
+Implement JWT in backend to validate endpoints
+
+Add delete button to delete requests, hook to backend
+
+Add ability to reset password to frontend
+- may need to adjust backend config
+
+Move buttons to the drawer so can have names to them
+
+Fix how user agreement is implemented
+
+Refresh on drag down request board
+
+Fix profile pic upload
+
+
+EXTENDED:
+Have videos on educational pages
+Have videos for first time users
+- Host vids on S3
+- Load vids on page load
+
+For tutorial 
+- disable app functionalities till completed
+- Can explore, just no interaction
+- a hover button to tutorial where watch 3 vids
+- short quiz to validate
+- Enable full app functionality
+
+Provide a tour to users
+
+
+
+
+

@@ -11,8 +11,8 @@ class DeliveryItems {
 
 
   factory DeliveryItems.fromJson(Map<String, dynamic> requestJson) {
-    final name = requestJson['name'] as String; 
-    final quantity = requestJson['quantity'] as int;
+    final name = requestJson['plant_ID'] as String? ?? '';
+    final quantity = requestJson['quantity'] as int? ?? 0;
     final type = requestJson['type'] as String? ?? 'branch/es';
 
     return DeliveryItems(
