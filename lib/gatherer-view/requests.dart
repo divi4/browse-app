@@ -58,7 +58,7 @@ Future<List<Request>> fetchRequests(User user) async {
       Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer ${user.idToken}",
+        "Authorization": "Bearer ${user.accessToken}",
       },
     );
 
@@ -741,7 +741,7 @@ void updateRequest(Request updatedRequest, User user) async {
         ),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer ${user.idToken}",
+        "Authorization": "Bearer ${user.accessToken}",
         },
       body: jsonEncode(updatedRequest.toJson()),
     );

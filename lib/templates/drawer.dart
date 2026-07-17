@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../auth/auth.dart';
-import '../donate.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class UserDrawer extends StatefulWidget {
   const UserDrawer({
-    super.key, 
-    required this.username, 
+    super.key,
+    required this.username,
     required this.user,
     required this.currentRoute,
   });
@@ -19,6 +19,18 @@ class UserDrawer extends StatefulWidget {
 }
 
 class _UserDrawer extends State<UserDrawer> {
+  late final WebViewController donateController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    donateController =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..loadRequest(Uri.parse("https://google.com"));
+  }
+
   GestureTapCallback drawerButton(String page, User user) {
     return () {
       setState(() {
@@ -31,7 +43,12 @@ class _UserDrawer extends State<UserDrawer> {
     };
   }
 
-  Widget buildTile(BuildContext context, String title, String path, IconData icon) {
+  Widget buildTile(
+    BuildContext context,
+    String title,
+    String path,
+    IconData icon,
+  ) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
@@ -59,32 +76,138 @@ class _UserDrawer extends State<UserDrawer> {
           buildTile(context, 'Your account', '/profile', Icons.account_circle),
           buildTile(context, 'Library', '/education', Icons.book),
 
-          if (currentRoute == '/request-board')  ...[
-            buildTile(context, 'Make an order', '/caretaker', Icons.add_shopping_cart),
-            buildTile(context, 'Register as a Landholder', '/landowner-registration', Icons.person_add),
+          if (currentRoute == '/request-board') ...[
+            buildTile(
+              context,
+              'Make an order',
+              '/caretaker',
+              Icons.add_shopping_cart,
+            ),
+            buildTile(
+              context,
+              'Register as a Landholder',
+              '/landowner-registration',
+              Icons.person_add,
+            ),
           ],
 
-          if (currentRoute == '/caretaker')  ...[
-            buildTile(context, 'View request board', '/request-board', Icons.list),
-            buildTile(context, 'Register as a Landholder', '/landowner-registration', Icons.person_add),
+          if (currentRoute == '/caretaker') ...[
+            buildTile(
+              context,
+              'View request board',
+              '/request-board',
+              Icons.list,
+            ),
+            buildTile(
+              context,
+              'Register as a Landholder',
+              '/landowner-registration',
+              Icons.person_add,
+            ),
           ],
 
-          if (currentRoute == '/landowner')  ...[
-            buildTile(context, 'View request board', '/request-board', Icons.list),
-            buildTile(context, 'Make an order', '/caretaker', Icons.add_shopping_cart),
-            buildTile(context, 'Register as a Landholder', '/landowner-registration', Icons.person_add),
+          if (currentRoute == '/landowner') ...[
+            buildTile(
+              context,
+              'View request board',
+              '/request-board',
+              Icons.list,
+            ),
+            buildTile(
+              context,
+              'Make an order',
+              '/caretaker',
+              Icons.add_shopping_cart,
+            ),
+            buildTile(
+              context,
+              'Register as a Landholder',
+              '/landowner-registration',
+              Icons.person_add,
+            ),
           ],
 
-          if (currentRoute == '/profile')  ...[
-            buildTile(context, 'View request board', '/request-board', Icons.list),
-            buildTile(context, 'Make an order', '/caretaker', Icons.add_shopping_cart),
-            buildTile(context, 'Register as a Landholder', '/landowner-registration', Icons.person_add),
+          if (currentRoute == '/profile') ...[
+            buildTile(
+              context,
+              'View request board',
+              '/request-board',
+              Icons.list,
+            ),
+            buildTile(
+              context,
+              'Make an order',
+              '/caretaker',
+              Icons.add_shopping_cart,
+            ),
+            buildTile(
+              context,
+              'Register as a Landholder',
+              '/landowner-registration',
+              Icons.person_add,
+            ),
           ],
 
           Divider(),
-          buildTile(context, 'Support / Donate', '/donate', Icons.volunteer_activism),
+
+          // Might work on actual phone, emulation doesn't seem to work as intended
+          // ElevatedButton.icon(
+          //   onPressed: _showDonateWebView,
+          //   icon: Icon(Icons.volunteer_activism),
+          //   label: Text('Support / Donate'),
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: Colors.green,
+          //     foregroundColor: Colors.white,
+          //     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          //     textStyle: TextStyle(fontSize: 16),
+          //   ),
+          // ),
         ],
       ),
+    );
+  }
+
+  void _showDonateWebView() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.8,
+            child: Column(
+              children: [
+                // AppBar for the dialog
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Support / Donate',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                // WebView
+                Expanded(child: WebViewWidget(controller: donateController)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

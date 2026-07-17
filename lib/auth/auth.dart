@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:amazon_cognito_identity_dart_2/cognito.dart';
 import 'config.dart';
 
@@ -16,7 +17,7 @@ class User {
   final String accessToken;
 
   User(this.username, this.userConfirmed, this.sessionValid, this.userSub,
-      this.claims, this.idToken, this.accessToken,);
+      this.claims, this.idToken, this.accessToken);
 }
 
 class CognitoManager {
@@ -65,33 +66,35 @@ class CognitoManager {
 
   Future<User> signIn(String email, String password) async {
     final cognitoUser = CognitoUser(email, userPool);
-    final authDetails =
-        AuthenticationDetails(username: email, password: password);
+    final authDetails = AuthenticationDetails(username: email, password: password);
+    
     try {
       final session = await cognitoUser.authenticateUser(authDetails);
+      
       if (session == null) {
-        throw CognitoClientException("session not found");
+        throw CognitoServiceException("session not found");
       }
-      var claims = <String, dynamic>{};
-      claims.addAll(session.idToken.payload);
-      claims.addAll(session.accessToken.payload);
 
       final idTokenString = session.idToken.getJwtToken() ?? '';
       final accessTokenString = session.accessToken.getJwtToken() ?? '';
 
       if (idTokenString.isEmpty || accessTokenString.isEmpty) {
-        throw CognitoClientException("Failed to get valid tokens");
+        throw CognitoServiceException("Failed to get valid tokens");
       }
 
+      var claims = <String, dynamic>{};
+      claims.addAll(session.idToken.payload);
+      claims.addAll(session.accessToken.payload);
+
       return User(
-            email, 
-            true, 
-            session.isValid(),
-            session.idToken.getSub() ?? "", 
-            claims,
-            idTokenString,
-            accessTokenString,
-          );
+        email, 
+        true, 
+        session.isValid(),
+        session.idToken.payload['sub'] ?? "", 
+        claims,
+        idTokenString,
+        accessTokenString,
+      );
     } catch (e) {
       throw CognitoServiceException(e.toString());
     }

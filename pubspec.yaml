@@ -30,7 +30,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  url_launcher: ^6.0.20
   group_button: ^5.3.4
 
   # The following adds the Cupertino Icons font to your application.
@@ -47,6 +46,7 @@ dependencies:
   change_case: ^2.2.0
   image_picker: ^1.2.0
   aws_client: ^0.7.1
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:
