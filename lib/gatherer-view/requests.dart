@@ -6,8 +6,6 @@ import 'dart:math';
 import '../templates/drawer.dart';
 import '../templates/browseList.dart';
 import '../auth/auth.dart';
-import '../auth/user_service.dart';
-import '../auth/config.dart';
 
 import '../models/request.dart';
 import '../models/response.dart';
@@ -53,28 +51,61 @@ class GathererHomePage extends StatefulWidget {
 }
 
 Future<List<Request>> fetchRequests(User user) async {
+  print('DEBUG: fetchRequests called');
+  print('DEBUG: User email: ${user.username}');
+  print('DEBUG: Access Token length: ${user.accessToken.length}');
+
   try {
-    final response = await http.get(
-      Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI'),
-      headers: {
+    final url = Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI');
+    print('DEBUG: Making GET request to: $url');
+
+    final headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer ${user.accessToken}",
+    };
+    print('DEBUG: Headers: $headers');
+
+    final response = await http.get(url, headers: headers);
+
+    print('DEBUG: Response Status Code: ${response.statusCode}');
+    print('DEBUG: Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
+
+    if (response.statusCode == 401) {
+      print('DEBUG: 401 Unauthorized - Trying with ID Token instead');
+
+      final idHeaders = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer ${user.accessToken}",
-      },
-    );
+        "Authorization": "Bearer ${user.idToken}",
+      };
 
-    final Map<String, dynamic> responseData = json.decode(response.body);
+      final idResponse = await http.get(url, headers: idHeaders);
+      print('DEBUG: ID Token Response Status: ${idResponse.statusCode}');
 
-    final Response requestResponse = Response.fromJson(responseData);
-    
+      if (idResponse.statusCode == 200) {
+        print('DEBUG: ID Token worked!');
+        final Map<String, dynamic> responseData = json.decode(idResponse.body);
+        final Response requestResponse = Response.fromJson(responseData);
+        return requestResponse.items ?? [];
+      } else {
+        throw Exception('Authentication failed with both tokens: ${idResponse.statusCode}');
+      }
+    }
+
     if (response.statusCode == 200) {
-      // Requests returned as an array
-      return requestResponse.items; 
+      print('DEBUG: Request successful');
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      print('DEBUG: Response data keys: ${responseData.keys.join(', ')}');
 
+      final Response requestResponse = Response.fromJson(responseData);
+      print('DEBUG: Retrieved ${requestResponse.items?.length ?? 0} requests');
+      return requestResponse.items ?? [];
     } else {
+      print('DEBUG: Request failed with status: ${response.statusCode}');
       throw Exception('Failed to load requests: ${response.statusCode} - ${response.body}');
     }
   } catch(e) {
-    throw Exception('Error: $e');
+    print('DEBUG: fetchRequests error: $e');
+    return []; // Return empty list instead of throwing
   }
 }
 
@@ -121,14 +152,20 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
   Widget requestTile(Request request, User user, bool isWip) {
     Color tileColor;
 
+    final requesterId = request.requester_ID ?? '';
+    final username = user.claims['username']?.toString() ?? '';
+
     // CHANGED: Highlight requests created by the user 
-    if (request.requester_ID == user.claims['username']) {
+    if (requesterId == username) {
       tileColor = const Color.fromARGB(255, 173, 216, 230); // Light blue
     } else if (isWip) {
       tileColor = const Color.fromARGB(255, 255, 224, 156); // Orange-ish
     } else {
       tileColor = const Color.fromARGB(255, 246, 251, 244); // Default green-ish
     }
+
+    final animalId = request.animal_ID ?? 'Unknown';
+    final imagePath = 'assets/images/${animalId.toLowerCase().split(" ").join("-")}.jpg';
 
     return Hero(
       tag: request.request_ID,
@@ -138,12 +175,10 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
         child: ListTile(
           leading: CircleAvatar(
             // Split and join the animal string so we can avoid 'space in path' issues when searching the image
-            backgroundImage: AssetImage(
-              'assets/images/${request.animal_ID.toLowerCase().split(" ").join("-")}.jpg',
-            ),
+            backgroundImage: AssetImage(imagePath),
             radius: 20,
           ),
-          title: Text(request.animal_ID),
+          title: Text(animalId),
           subtitle: BrowseTileList(browses: request.getBrowseNames(), quantities: request.getBrowseQuantities()),
           trailing: Column(
             children: [
@@ -469,53 +504,56 @@ Future<void> _maybeShowOfflineNotice() async {
     );
   }
 
-  Widget requestDetails(details) {
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: Column(
-        // Need this to force left alignment of children
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.call_to_action_outlined, size: 14),
-              Text(
-                "Request Details:", 
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ], 
-          ),
-          Text(
-            details,
-            style: TextStyle(
-              fontStyle: FontStyle.italic,
-              inherit: false,
-              ),
-            ),
-        ]
-      ),
-    );
-  }
-
   Widget deliveryAddress(address, postcode) {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.place, size: 14),
-              Text(
-                "Delivery address:",
-                style: TextStyle(fontWeight: FontWeight.bold),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.place, size: 14),
+                Text(
+                  "Delivery address:",
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-            ], 
-          ),
-          isShowAddress(widget.request, widget.user)
-            ? SelectableText("$address, $postcode")
-            : SelectableText("Postcode: $postcode"),
-        ]
+              ],
+            ),
+            isShowAddress(widget.request, widget.user)
+                ? SelectableText("${address ?? 'No address'}, $postcode")
+                : SelectableText("Postcode: $postcode"),
+          ]
+      ),
+    );
+  }
+
+  Widget requestDetails(details) {
+    // Handle null details
+    if (details == null || details.isEmpty) {
+      return Container(); // Don't show if no details
+    }
+
+    return Align(
+      alignment: Alignment.bottomLeft,
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.call_to_action_outlined, size: 14),
+                Text(
+                  "Request Details:",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            Text(
+              details,
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ]
       ),
     );
   }
@@ -529,7 +567,7 @@ Future<void> _maybeShowOfflineNotice() async {
             WidgetSpan(child: Icon(Icons.timelapse, size: 14)),
             TextSpan(
               text: " Submitted ${formatTimelapse(getTimelapse(request.timestamp))} ago",
-              style: isStale(getTimelapse(request.timestamp)) 
+              style: isStale(getTimelapse(request.timestamp))
                 ? TextStyle(color: Colors.red)
                 : TextStyle(color: Colors.black)
             ),

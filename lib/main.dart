@@ -11,17 +11,15 @@ import 'landowner-view/landowner_registration.dart';
 import 'education/browse_list.dart';
 
 import 'personal/profile.dart';
-import 'auth/agreement_screen.dart';
 
 void main() async {
-  final prefs = await SharedPreferences.getInstance();
-  final hasAgreed = prefs.getBool('user_agreed') ?? false;
+  WidgetsFlutterBinding.ensureInitialized();
+  await SharedPreferences.getInstance();
 runApp(
     MaterialApp(
-      initialRoute: hasAgreed ? '/login' : '/agreement',
+      initialRoute: '/login',
       routes: {
-        '/agreement': (context) => const AgreementScreen(),
-        '/login': (context) => const LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/request-board': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return GathererRoute(user: args['user']);

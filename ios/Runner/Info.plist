@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flutter Base Project</string>
+	<string>Browse App</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_base_project</string>
+	<string>browse_app</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -49,5 +49,24 @@
 	<string>Used to allow users to upload their profile image</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to allow users to upload their profile image</string>
+	
+	<!-- Custom URL Scheme for OAuth callback -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>browseapp</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.browseapp</string>
+		</dict>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+
+	<!-- Associated Domains for Universal Links -->
+	<array>
+		<string>applinks:yourdomain.com</string>
+	</array>
 </dict>
 </plist>

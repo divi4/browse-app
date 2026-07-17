@@ -1,4 +1,9 @@
 {
-    "UserPoolID": "ap-southeast-2_f64XsaFoC",
-    "ClientID": "1qba58avcajjhvs8ce1rce00mh"
+  "userPoolID": "ap-southeast-2_f64XsaFoC",
+  "clientID": "1qba58avcajjhvs8ce1rce00mh",
+  "region": "ap-southeast-2",
+  "apiEndpoint": "https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com",
+  "cognitoDomain": "https://ap-southeast-2f64xsafoc.auth.ap-southeast-2.amazoncognito.com",
+  "redirectUri": "browseapp://callback",
+  "logoutRedirectUri": "browseapp://callback"
 }
