@@ -244,7 +244,7 @@ class OAuthService {
       print('DEBUG:   - given_name: ${claims['given_name']}');
       print('DEBUG:   - family_name: ${claims['family_name']}');
       print('DEBUG:   - custom:role: ${claims['custom:role']}');
-      print('DEBUG:   - custom:postcode: ${claims['custom:postcode']}');
+      print('DEBUG:   - custom:suburb: ${claims['custom:suburb']}');
       print('DEBUG:   - Total claims: ${claims.length}');
 
       // Create User

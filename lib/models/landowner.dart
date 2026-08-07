@@ -10,7 +10,7 @@ class Landowner {
     required this.timestamp,
     required this.browseData,
     required this.address,
-    required this.postcode,
+    required this.suburb,
     this.accessDetails,
     required this.phone,
     required this.daysData,
@@ -28,7 +28,7 @@ class Landowner {
   final String timestamp;
   List<LandownerBrowse> browseData;
   String address;
-  int postcode;
+  String suburb;
   String? accessDetails;
   String phone;
   List<LandownerDays> daysData;
@@ -46,7 +46,7 @@ class Landowner {
       timestamp: '',
       browseData: [],
       address: '',
-      postcode: 1000,
+      suburb: '',
       accessDetails: '',
       phone: '',
       daysData: [],
@@ -146,7 +146,7 @@ class Landowner {
         timestamp: requestJson['timestamp']?.toString() ?? '',
         browseData: _parseBrowseItems(requestJson['browseData']),
         address: requestJson['address']?.toString() ?? '',
-        postcode: (requestJson['postcode'] as int?) ?? 0,
+        suburb: requestJson['suburb']?.toString() ?? '',
         accessDetails: requestJson['accessDetails']?.toString(),
         phone: requestJson['phone']?.toString() ?? '',
         daysData: _parseDayItems(requestJson['daysData']),
@@ -168,7 +168,7 @@ class Landowner {
       'isActive': isActive,
       'timestamp': timestamp,
       'address': address,
-      'postcode': postcode,
+      'suburb': suburb,
       'phone': phone,
       'warningRequired': warningRequired,
       'accessDetails': accessDetails,

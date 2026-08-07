@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'dart:math';
+import 'package:http/http.dart' as http;
 
 import '../templates/drawer.dart';
 import '../auth/auth.dart';
@@ -111,7 +111,7 @@ class _RequestBoardState extends State<LandownerHomePage>
   // String animal = animal.animal_Name
   // String browse = item.plant_Name
   // int quantity = item.quantity
-  // int postcode = request.postcode
+  // String suburb = request.suburb
   Widget requestTile(Landowner request, User user) {
     bool isBrowseGTTwo = request.getBrowseNames().length > 2 ? true : false;
 
@@ -150,7 +150,7 @@ class _RequestBoardState extends State<LandownerHomePage>
                   ? TextStyle(color: Colors.red)
                   : TextStyle(color: Colors.black)
               ),
-              Text('Postcode: ${request.postcode}'),
+              Text('Suburb: ${request.suburb}'),
           ]),
           tileColor: const Color.fromARGB(255, 246, 251, 244),
           onTap: () {
@@ -232,15 +232,22 @@ class _RequestBoardState extends State<LandownerHomePage>
                 return sublist.browseData.any((item) => widget.browseFilter.contains(item.getBrowseName())) && sublist.isActive;
               }).toList();
 
-              // Sorts listing by postcode low to high after subtracting user's postcode
-              // This assumes that the lowest postcode is the nearest to the user
-              int userLocation = int.parse(widget.user.claims['custom:postcode']);
-              
-              filteredListings.sort((a,b) {
-                int c = max(a.postcode, userLocation) - min(a.postcode, userLocation);
-                int d = max(b.postcode, userLocation) - min(b.postcode, userLocation);
-                return c.compareTo(d);
-                });
+              // Sort listings by suburb name, prioritising the user's suburb when available.
+              final String userSuburb = (widget.user.claims['custom:suburb'] ?? '').toString().toLowerCase();
+
+              filteredListings.sort((a, b) {
+                final String aSuburb = a.suburb.toLowerCase();
+                final String bSuburb = b.suburb.toLowerCase();
+
+                if (aSuburb == userSuburb && bSuburb != userSuburb) {
+                  return -1;
+                }
+                if (aSuburb != userSuburb && bSuburb == userSuburb) {
+                  return 1;
+                }
+
+                return aSuburb.compareTo(bSuburb);
+              });
 
               // Empties the allListings array
               allListings.clear();
@@ -351,7 +358,7 @@ class _LandownerProfileState extends State<LandownerProfile> {
     );
   }
 
-  Widget landownerAddress(address, postcode) {
+  Widget landownerAddress(address, suburb) {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Column(
@@ -367,10 +374,10 @@ class _LandownerProfileState extends State<LandownerProfile> {
             ], 
           ),
           _showAddress
-            ? SelectableText("$address, $postcode")
+            ? SelectableText("$address, $suburb")
             // Will probably reimplement this to dynamically call for address once request accepted, for security
-            // TODO lookup postcode for name of suburb to add to address
-            : SelectableText("(Revealed upon pressing contact below)\nPostcode: $postcode"),
+            // TODO lookup suburb for address once request accepted
+            : SelectableText("(Revealed upon pressing contact below)\nSuburb: $suburb"),
         ]
       ),
     );
@@ -574,7 +581,7 @@ class _LandownerProfileState extends State<LandownerProfile> {
               const SizedBox(
                 height: 15.0,
               ),
-              landownerAddress(widget.request.address, widget.request.postcode),
+              landownerAddress(widget.request.address, widget.request.suburb),
               const SizedBox(
                 height: 10.0,
               ),

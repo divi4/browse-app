@@ -148,7 +148,7 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
   // String animal = animal.animal_Name
   // String browse = item.plant_Name
   // int quantity = item.quantity
-  // int postcode = request.postcode
+  // int suburb = request.suburb
   Widget requestTile(Request request, User user, bool isWip) {
     Color tileColor;
 
@@ -188,7 +188,7 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
                   ? TextStyle(color: Colors.red)
                   : TextStyle(color: Colors.black)
               ),
-              Text('Postcode: ${request.postcode}'),
+              Text('Suburb: ${request.suburb}'),
           ]),
           tileColor: tileColor,
           onTap: () {
@@ -272,14 +272,14 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
                 return isActive(request.status_Num) || isUserAssigned;
               }).toList();
 
-              // Sorts listing by postcode low to high after subtracting user's postcode
-              // This assumes that the lowest postcode number to the user is actually closest geographically
-              int userLocation = int.parse(widget.user.claims['custom:postcode']);
-              filteredRequests.sort((a,b) {
-                int c = max(a.postcode, userLocation) - min(a.postcode, userLocation);
-                int d = max(b.postcode, userLocation) - min(b.postcode, userLocation);
-                return c.compareTo(d);
-              });
+              // Sorts listing by suburb low to high after subtracting user's suburb
+              // This assumes that the lowest suburb number to the user is actually closest geographically
+              // int userLocation = int.parse(widget.user.claims['custom:suburb']);
+              // filteredRequests.sort((a,b) {
+              //   int c = max(a.suburb, userLocation) - min(a.suburb, userLocation);
+              //   int d = max(b.suburb, userLocation) - min(b.suburb, userLocation);
+              //   return c.compareTo(d);
+              // });
 
               // Moves requests that are WIP (status_Num = 2) to top of list above posted requests (status_Num = 1)
               filteredRequests.sort((a,b) {
@@ -504,7 +504,7 @@ Future<void> _maybeShowOfflineNotice() async {
     );
   }
 
-  Widget deliveryAddress(address, postcode) {
+  Widget deliveryAddress(address, suburb) {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Column(
@@ -520,8 +520,8 @@ Future<void> _maybeShowOfflineNotice() async {
               ],
             ),
             isShowAddress(widget.request, widget.user)
-                ? SelectableText("${address ?? 'No address'}, $postcode")
-                : SelectableText("Postcode: $postcode"),
+                ? SelectableText("${address ?? 'No address'}, $suburb")
+                : SelectableText("suburb: $suburb"),
           ]
       ),
     );
@@ -694,7 +694,7 @@ Future<void> _maybeShowOfflineNotice() async {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          deliveryAddress(widget.request.address.toString().toCapitalCase(), widget.request.postcode),
+                          deliveryAddress(widget.request.address.toString().toCapitalCase(), widget.request.suburb),
                           const SizedBox(height: 10.0),
                           widget.request.requestDetails != null ? requestDetails(widget.request.requestDetails): Container(),
                           const SizedBox(height: 10.0),

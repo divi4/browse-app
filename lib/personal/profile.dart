@@ -217,8 +217,14 @@ class _Profile extends State<Profile> {
         return FormBuilderValidators.firstName();
       case 'family_name':
         return FormBuilderValidators.lastName();
-      case 'custom:postcode':
-        return FormBuilderValidators.range(999, 9999);
+      case 'custom:suburb':
+        return FormBuilderValidators.compose([
+          FormBuilderValidators.required(),
+          FormBuilderValidators.match(
+            RegExp(r"^[A-Za-z][A-Za-z\s'-]*$"),
+            errorText: 'Please enter a suburb name',
+          ),
+        ]);
       case 'custom:address':
         return FormBuilderValidators.street(
           regex: RegExp(
@@ -339,12 +345,12 @@ class _Profile extends State<Profile> {
                   ),
                   Expanded(
                     child: Text(
-                        '${widget.user.claims['custom:address'].toString().toCapitalCase()}, ${widget.user.claims['custom:postcode'].toString().toCapitalCase()}'),
+                        '${widget.user.claims['custom:address'].toString().toCapitalCase()}, ${widget.user.claims['custom:suburb'].toString().toCapitalCase()}'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () {
-                      showEditDialogTwo('custom:address', 'custom:postcode', 'Address');
+                      showEditDialogTwo('custom:address', 'custom:suburb', 'Address');
                     },
                   ),
                 ],

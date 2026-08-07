@@ -153,19 +153,15 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
                   ),
                   SizedBox(height:16),
                   FormBuilderTextField(
-                      name: 'postcode',
-                      initialValue: "${widget.user.claims['custom:postcode']}",
+                      name: 'suburb',
+                      initialValue: "${widget.user.claims['custom:suburb']}",
                       decoration: const InputDecoration(
-                        labelText: 'Postcode',
+                        labelText: 'Suburb',
                         contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
                       ),
                       validator: FormBuilderValidators.compose(
                           [
                             FormBuilderValidators.required(),
-                            FormBuilderValidators.integer(),
-                            FormBuilderValidators.equalLength(4),
-                            FormBuilderValidators.positiveNumber()
-
                           ]),
                       onChanged: (val) {
                           print(val); // Print the text value write into TextField

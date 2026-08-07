@@ -3,7 +3,7 @@ import 'deliveryItems.dart';
 class Request {
   Request({
     required this.caretakerName,
-    required this.postcode,
+    required this.suburb,
     required this.address,
     this.requestDetails,
     required this.request_ID,
@@ -16,7 +16,7 @@ class Request {
   });
 
   final String caretakerName;
-  final int postcode;
+  final String suburb;
   final String address;
   final String? requestDetails;
   final String request_ID;
@@ -31,7 +31,7 @@ class Request {
   factory Request.empty() {
     return Request(
       caretakerName: '',
-      postcode: 0,
+      suburb: '',
       address: '',
       request_ID: '',
       timestamp: '',
@@ -86,7 +86,7 @@ class Request {
     try {
       return Request(
         caretakerName: requestJson['caretakerName']?.toString() ?? '',
-        postcode: (requestJson['postcode'] as int?) ?? 0,
+        suburb: requestJson['suburb']?.toString() ?? '',
         address: requestJson['address']?.toString() ?? '',
         requestDetails: requestJson['requestDetails']?.toString(),
         request_ID: requestJson['request_ID']?.toString() ?? '',
@@ -109,7 +109,7 @@ class Request {
       'status_Num': status_Num,
       'caretakerName': caretakerName,
       'address': address,
-      'postcode': postcode,
+      'suburb': suburb,
       'requestDetails': requestDetails,
       'timestamp': timestamp,
       'animal_ID': animal_ID,

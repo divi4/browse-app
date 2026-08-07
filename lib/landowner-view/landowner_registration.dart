@@ -121,7 +121,7 @@ class _LandownerFormTabs extends State<LandownerFormTabs> with SingleTickerProvi
           !_formKey.currentState!.fields['timesData']!.validate()) {
       } else if (!_formKey.currentState!.fields['browseData']!.validate() ||
           !_formKey.currentState!.fields['address']!.validate() ||
-          !_formKey.currentState!.fields['postcode']!.validate() ||
+          !_formKey.currentState!.fields['suburb']!.validate() ||
           !_formKey.currentState!.fields['phone']!.validate()) {
         _tabController.animateTo(_currentTab - 1);
       }
@@ -259,16 +259,13 @@ class _LandDetailsTabState extends State<LandDetailsTab> with AutomaticKeepAlive
 
           const SizedBox(height: 16),
           FormBuilderTextField(
-            name: 'postcode',
+            name: 'suburb',
             decoration: const InputDecoration(
-              labelText: 'Postcode',
+              labelText: 'Suburb',
               contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
             ),
             validator: FormBuilderValidators.compose([
               FormBuilderValidators.required(),
-              FormBuilderValidators.integer(),
-              FormBuilderValidators.equalLength(4),
-              FormBuilderValidators.positiveNumber(),
             ]),
             onChanged: (val) => print(val),
           ),
