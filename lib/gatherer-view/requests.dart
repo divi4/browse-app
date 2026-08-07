@@ -521,7 +521,7 @@ Future<void> _maybeShowOfflineNotice() async {
             ),
             isShowAddress(widget.request, widget.user)
                 ? SelectableText("${address ?? 'No address'}, $suburb")
-                : SelectableText("suburb: $suburb"),
+                : SelectableText("Suburb: $suburb"),
           ]
       ),
     );

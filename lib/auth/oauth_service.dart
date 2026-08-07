@@ -72,7 +72,7 @@ class OAuthService {
         .replace(queryParameters: {
       'client_id': _config.clientID,
       'response_type': 'code',
-      'scope': 'email openid phone',
+      'scope': 'email openid phone aws.cognito.signin.user.admin',
       'redirect_uri': _redirectUri,
       'code_challenge': _codeChallenge!,
       'code_challenge_method': 'S256',
@@ -121,8 +121,8 @@ class OAuthService {
         headers: {
           'Content-Type': 'application/x-amz-json-1.1',
           'X-Amz-Target': 'AWSCognitoIdentityProviderService.GetUser',
-          'Authorization': 'Bearer $accessToken',
         },
+        body: jsonEncode({'AccessToken': accessToken}),
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
