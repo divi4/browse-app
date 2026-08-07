@@ -345,12 +345,12 @@ class _Profile extends State<Profile> {
                   ),
                   Expanded(
                     child: Text(
-                        '${widget.user.claims['custom:address'].toString().toCapitalCase()}, ${widget.user.claims['custom:suburb'].toString().toCapitalCase()}'),
+                        '${widget.user.claims['address'].toString().toCapitalCase()}, ${widget.user.claims['custom:suburb'].toString().toCapitalCase()}'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () {
-                      showEditDialogTwo('custom:address', 'custom:suburb', 'Address');
+                      showEditDialogTwo('address', 'custom:suburb', 'Address');
                     },
                   ),
                 ],
