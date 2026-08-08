@@ -1,5 +1,55 @@
 import 'deliveryItems.dart';
 
+Map<String, String> buildAddressClaimProjection(Map<String, dynamic> claims) {
+  return {
+    'suburb': (claims['custom:suburb'] ?? '').toString().trim(),
+    'state': (claims['custom:state'] ?? '').toString().trim(),
+    'streetNumber': (claims['custom:streetNumber'] ?? '').toString().trim(),
+    'street': (claims['custom:street'] ?? '').toString().trim(),
+    'postcode': (claims['custom:postcode'] ?? '').toString().trim(),
+
+  };
+}
+
+String buildAddressSummaryFromClaims(Map<String, dynamic> claims) {
+  final projection = buildAddressClaimProjection(claims);
+
+  final streetNumber = projection['streetNumber'] ?? '';
+  final street = projection['street'] ?? '';
+  final suburb = projection['suburb'] ?? '';
+  final state = projection['state'] ?? '';
+  final postcode = projection['postcode'] ?? '';
+
+  final fullAddress = <String>[];
+
+  if (streetNumber.isNotEmpty) {
+    fullAddress.add(streetNumber);
+  }
+
+  if (street.isNotEmpty) {
+    fullAddress.add(street);
+  }
+
+  if (suburb.isNotEmpty) {
+    fullAddress.add(suburb);
+  }
+
+  if (state.isNotEmpty) {
+    fullAddress.add(state);
+  }
+
+  if (postcode.isNotEmpty) {
+    fullAddress.add(postcode);
+  }
+
+  if (fullAddress.isEmpty) {
+
+    return 'Error: No address found.';
+  }
+
+  return fullAddress.join(', ');
+}
+
 class Request {
   Request({
     required this.caretakerName,
@@ -63,8 +113,10 @@ class Request {
     status_Num = newState;
   }
 
-  set assignGatherer(String newState) {
-    assigned_User_ID = newState;
+  set assignGatherer(String? newState) {
+    if (newState != null && newState.trim().isNotEmpty) {
+      assigned_User_ID = newState;
+    }
   }
 
   static List<DeliveryItems> _parseDeliveryItems(dynamic itemsData) {

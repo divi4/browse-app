@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:app_links/app_links.dart';
 import 'config.dart';
 import 'auth.dart';  // Only for User class
 
@@ -153,7 +152,7 @@ class OAuthService {
         }
 
         if (data.containsKey('Username')) {
-          claims['cognito:username'] = data['Username'];
+          claims['username'] = data['Username'];
         }
 
         return claims;
@@ -234,10 +233,17 @@ class OAuthService {
       }
 
       // Extract username
-      final username = claims['cognito:name']?.toString() ??
+      final username = claims['name']?.toString() ??
           claims['email']?.toString() ??
-          claims['cognito:username']?.toString() ??
+          claims['username']?.toString() ??
           '';
+
+      if (username.isNotEmpty) {
+        claims['username'] = username;
+        if (claims['username'] == null || (claims['username'] as String).isEmpty) {
+          claims['username'] = username;
+        }
+      }
 
       print('DEBUG: Final claims:');
       print('DEBUG:   - username: $username');
@@ -313,11 +319,15 @@ class OAuthService {
         print('DEBUG: Decoded ${claims.length} claims from ID token');
       }
 
-      final username = claims['cognito:name']?.toString() ??
+      final username = claims['name']?.toString() ??
           claims['email']?.toString() ??
-          claims['cognito:username']?.toString() ??
+          claims['username']?.toString() ??
           tokens['username'] ??
           '';
+
+      if (username.isNotEmpty) {
+        claims['username'] = username;
+      }
 
       return User(
         username,
@@ -381,10 +391,14 @@ class OAuthService {
         claims = json.decode(utf8.decode(base64Url.decode(normalized)));
       }
 
-      final username = claims['cognito:name']?.toString() ??
+      final username = claims['name']?.toString() ??
           claims['email']?.toString() ??
-          claims['cognito:username']?.toString() ??
+          claims['username']?.toString() ??
           user.username;
+
+      if (username.isNotEmpty) {
+        claims['username'] = username;
+      }
 
       final refreshedUser = User(
         username,

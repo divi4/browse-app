@@ -6,6 +6,7 @@ import 'dart:math';
 import '../templates/drawer.dart';
 import '../templates/browseList.dart';
 import '../auth/auth.dart';
+import '../auth/oauth_service.dart';
 
 import '../models/request.dart';
 import '../models/response.dart';
@@ -51,27 +52,28 @@ class GathererHomePage extends StatefulWidget {
 }
 
 Future<List<Request>> fetchRequests(User user) async {
-  print('DEBUG: fetchRequests called');
-  print('DEBUG: User email: ${user.username}');
-  print('DEBUG: Access Token length: ${user.accessToken.length}');
+  debugPrint('DEBUG: fetchRequests called');
+  debugPrint('DEBUG: User email: ${user.username}');
+  debugPrint('DEBUG: Access Token length: ${user.accessToken.length}');
+
+  final url = Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI');
 
   try {
-    final url = Uri.parse('https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI');
-    print('DEBUG: Making GET request to: $url');
+    debugPrint('DEBUG: Making GET request to: $url');
 
     final headers = {
       "Content-Type": "application/json",
       "Authorization": "Bearer ${user.accessToken}",
     };
-    print('DEBUG: Headers: $headers');
+    debugPrint('DEBUG: Headers: $headers');
 
     final response = await http.get(url, headers: headers);
 
-    print('DEBUG: Response Status Code: ${response.statusCode}');
-    print('DEBUG: Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
+    debugPrint('DEBUG: Response Status Code: ${response.statusCode}');
+    debugPrint('DEBUG: Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
 
     if (response.statusCode == 401) {
-      print('DEBUG: 401 Unauthorized - Trying with ID Token instead');
+      debugPrint('DEBUG: 401 Unauthorized - Trying with ID Token instead');
 
       final idHeaders = {
         "Content-Type": "application/json",
@@ -79,10 +81,10 @@ Future<List<Request>> fetchRequests(User user) async {
       };
 
       final idResponse = await http.get(url, headers: idHeaders);
-      print('DEBUG: ID Token Response Status: ${idResponse.statusCode}');
+      debugPrint('DEBUG: ID Token Response Status: ${idResponse.statusCode}');
 
       if (idResponse.statusCode == 200) {
-        print('DEBUG: ID Token worked!');
+        debugPrint('DEBUG: ID Token worked!');
         final Map<String, dynamic> responseData = json.decode(idResponse.body);
         final Response requestResponse = Response.fromJson(responseData);
         return requestResponse.items ?? [];
@@ -92,19 +94,82 @@ Future<List<Request>> fetchRequests(User user) async {
     }
 
     if (response.statusCode == 200) {
-      print('DEBUG: Request successful');
+      debugPrint('DEBUG: Request successful');
       final Map<String, dynamic> responseData = json.decode(response.body);
-      print('DEBUG: Response data keys: ${responseData.keys.join(', ')}');
+      debugPrint('DEBUG: Response data keys: ${responseData.keys.join(', ')}');
 
       final Response requestResponse = Response.fromJson(responseData);
-      print('DEBUG: Retrieved ${requestResponse.items?.length ?? 0} requests');
+      debugPrint('DEBUG: Retrieved ${requestResponse.items?.length ?? 0} requests');
       return requestResponse.items ?? [];
     } else {
-      print('DEBUG: Request failed with status: ${response.statusCode}');
+      debugPrint('DEBUG: Request failed with status: ${response.statusCode}');
       throw Exception('Failed to load requests: ${response.statusCode} - ${response.body}');
     }
+  } on http.ClientException catch (e) {
+    debugPrint('DEBUG: fetchRequests auth challenge / client exception: ${e.message}');
+
+    try {
+      final oauthService = OAuthService();
+      final refreshedUser = await oauthService.refreshTokens(user);
+      debugPrint('DEBUG: Token refresh succeeded inside request fetch recovery');
+
+      final refreshHeaders = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${refreshedUser.accessToken}",
+      };
+
+      final refreshResponse = await http.get(url, headers: refreshHeaders);
+      debugPrint('DEBUG: Refreshed response status: ${refreshResponse.statusCode}');
+
+      if (refreshResponse.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(refreshResponse.body);
+        final Response requestResponse = Response.fromJson(responseData);
+        return requestResponse.items ?? [];
+      } else if (refreshResponse.statusCode == 401) {
+        final idHeaders = {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${refreshedUser.idToken}",
+        };
+
+        final idResponse = await http.get(url, headers: idHeaders);
+        debugPrint('DEBUG: Refreshed ID fallback response status: ${idResponse.statusCode}');
+
+        if (idResponse.statusCode == 200) {
+          final Map<String, dynamic> responseData = json.decode(idResponse.body);
+          final Response requestResponse = Response.fromJson(responseData);
+          return requestResponse.items ?? [];
+        } else {
+          throw Exception('Authentication failed with refreshed ID token: ${idResponse.statusCode}');
+        }
+      } else {
+        throw Exception('Failed to load requests after refresh: ${refreshResponse.statusCode} - ${refreshResponse.body}');
+      }
+    } catch (refreshError) {
+      debugPrint('DEBUG: fetchRequests refresh recovery error: $refreshError');
+
+      final idHeaders = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${user.idToken}",
+      };
+
+      try {
+        final idResponse = await http.get(url, headers: idHeaders);
+        debugPrint('DEBUG: ID Token fallback response status: ${idResponse.statusCode}');
+
+        if (idResponse.statusCode == 200) {
+          final Map<String, dynamic> responseData = json.decode(idResponse.body);
+          final Response requestResponse = Response.fromJson(responseData);
+          return requestResponse.items ?? [];
+        } else {
+          throw Exception('Authentication failed with fallback ID token: ${idResponse.statusCode}');
+        }
+      } catch (fallbackError) {
+        debugPrint('DEBUG: fetchRequests id token fallback error: $fallbackError');
+        return [];
+      }
+    }
   } catch(e) {
-    print('DEBUG: fetchRequests error: $e');
+    debugPrint('DEBUG: fetchRequests error: $e');
     return []; // Return empty list instead of throwing
   }
 }
@@ -154,9 +219,10 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
 
     final requesterId = request.requester_ID ?? '';
     final username = user.claims['username']?.toString() ?? '';
+    final bool isCreator = requesterId == username;
 
     // CHANGED: Highlight requests created by the user 
-    if (requesterId == username) {
+    if (isCreator) {
       tileColor = const Color.fromARGB(255, 173, 216, 230); // Light blue
     } else if (isWip) {
       tileColor = const Color.fromARGB(255, 255, 224, 156); // Orange-ish
@@ -172,39 +238,92 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
       // Note if splash effects are needed, will need to change Card() to Material(), this will cause the margin to be lost
       child: Card(
         elevation: 4,
-        child: ListTile(
-          leading: CircleAvatar(
-            // Split and join the animal string so we can avoid 'space in path' issues when searching the image
-            backgroundImage: AssetImage(imagePath),
-            radius: 20,
-          ),
-          title: Text(animalId),
-          subtitle: BrowseTileList(browses: request.getBrowseNames(), quantities: request.getBrowseQuantities()),
-          trailing: Column(
-            children: [
-              Text(
-                "${formatTimelapse(getTimelapse(request.timestamp))} ago",
-                style: isStale(getTimelapse(request.timestamp)) 
-                  ? TextStyle(color: Colors.red)
-                  : TextStyle(color: Colors.black)
-              ),
-              Text('Suburb: ${request.suburb}'),
-          ]),
-          tileColor: tileColor,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute<Widget>(
-                // Redirects from board to a detailed request page
-                builder:
-                    (BuildContext context) => DetailedRequest(
-                      title: 'Request Details',
-                      request: request,
-                      user: user,
+        color: tileColor,
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 118),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<Widget>(
+                  builder: (BuildContext context) => DetailedRequest(
+                    title: 'Request Details',
+                    request: request,
+                    user: user,
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    backgroundImage: AssetImage(imagePath),
+                    radius: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          animalId,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        BrowseTileList(
+                          browses: request.getBrowseNames(),
+                          quantities: request.getBrowseQuantities(),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "${formatTimelapse(getTimelapse(request.timestamp))} ago",
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: isStale(getTimelapse(request.timestamp))
+                              ? TextStyle(color: Colors.red)
+                              : TextStyle(color: Colors.black),
+                        ),
+                        Text(
+                          'Suburb: ${request.suburb}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                        if (isCreator)
+                          IconButton(
+                            onPressed: () async {
+                              await deleteRequest(request, user);
+                              _loadRequests();
+                            },
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            tooltip: 'Delete request',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
@@ -255,6 +374,7 @@ class _RequestBoardState extends State<GathererHomePage> with TickerProviderStat
               }
               
               if (snapshot.hasError) {
+                debugPrint('Snapshot Error: ${snapshot.error}');
                 return Center(child: Text('Snapshot Error: ${snapshot.error}'));
               }
               
@@ -505,6 +625,8 @@ Future<void> _maybeShowOfflineNotice() async {
   }
 
   Widget deliveryAddress(address, suburb) {
+    final bool canShowFullAddress = isShowAddress(widget.request, widget.user);
+
     return Align(
       alignment: Alignment.bottomLeft,
       child: Column(
@@ -519,8 +641,8 @@ Future<void> _maybeShowOfflineNotice() async {
                 ),
               ],
             ),
-            isShowAddress(widget.request, widget.user)
-                ? SelectableText("${address ?? 'No address'}, $suburb")
+            canShowFullAddress
+                ? SelectableText(buildAddressSummaryFromClaims(widget.user.claims))
                 : SelectableText("Suburb: $suburb"),
           ]
       ),
@@ -597,13 +719,15 @@ Future<void> _maybeShowOfflineNotice() async {
                 await _maybeShowOfflineNotice(); 
                 await _maybeShowEnvironmentalCareNotice();
                 
+                final requestUserName = widget.user.claims['username']?.toString();
+
                 setState(() {
-                  request.assignGatherer = widget.user.claims['username'];
+                  request.assignGatherer = requestUserName;
                   request.updateState = 2;
-                  
-                  // Sends updated request to database        
+
+                  // Sends updated request to database
                   updateRequest(request, widget.user);
-                  });
+                });
                   },
               child: Text(
                 'Accept',
@@ -694,7 +818,7 @@ Future<void> _maybeShowOfflineNotice() async {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          deliveryAddress(widget.request.address.toString().toCapitalCase(), widget.request.suburb),
+                          deliveryAddress(widget.request.address.toString().toCapitalCase(), widget.request.suburb.toString().toCapitalCase()),
                           const SizedBox(height: 10.0),
                           widget.request.requestDetails != null ? requestDetails(widget.request.requestDetails): Container(),
                           const SizedBox(height: 10.0),
@@ -770,6 +894,29 @@ bool isStale(timelapse) {
   // timeParts[1] = Hours elapsed
   return timeParts[0] > 0 || timeParts[1] > 15;
 }
+ 
+Future<void> deleteRequest(Request request, User user) async {
+  try {
+    final response = await http.delete(
+      Uri.parse(
+        'https://uuy1e4eofl.execute-api.us-east-1.amazonaws.com/requestsAPI/${request.request_ID}/${request.status_Num}'
+      ),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${user.accessToken}",
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      print('Delete successfully sent for ${request.request_ID}');
+    } else {
+      print('Server Error: ${response.statusCode}');
+      debugPrint(response.body);
+    }
+  } catch (e) {
+    print('Failed to delete request: $e');
+  }
+}
 
 void updateRequest(Request updatedRequest, User user) async {
   try {
@@ -800,15 +947,12 @@ void updateRequest(Request updatedRequest, User user) async {
 }
 
 bool isShowAddress(Request request, User user) {
-  // Checks if the user is the one that is working on the request
-  if(!isActive(request.status_Num) && user.claims['username'] == request.assigned_User_ID) {
+  // The full landholder address is hidden until the gatherer accepts the work item.
+  // Once the request is accepted, the request is moved into WIP (status_Num = 2) and the
+  // assigned gatherer is allowed to see the full address.
+  if (request.status_Num == 2 && user.claims['username'] == request.assigned_User_ID) {
     return true;
   }
-  // Checks if the user is the one that created the request
-  if (user.claims['username'] == request.requester_ID) {
-    return false;
-  }  
-  else {
-    return false;
-  }
+
+  return false;
 }

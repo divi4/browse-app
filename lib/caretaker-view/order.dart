@@ -6,9 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:change_case/change_case.dart';
+import 'package:google_maps_places_autocomplete_widgets/address_autocomplete_widgets.dart';
 
 import '../templates/drawer.dart';
 import '../auth/auth.dart';
+import '../models/request.dart';
 
 class CaretakerRoute extends StatelessWidget {
   final User user;
@@ -58,6 +60,29 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
   final _formKey = GlobalKey<FormBuilderState>();
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = 
     GlobalKey<ScaffoldMessengerState>();
+
+  late final TextEditingController _addressController;
+
+  String _selectedAddress = '';
+  String _selectedStreetNumber = '';
+  String _selectedStreet = '';
+  String _selectedSuburb = '';
+  String _selectedState = '';
+  String _selectedPostcode = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController = TextEditingController(
+      text: (widget.user.claims['address'] ?? '').toString().trim(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
+  }
 
   // List of delivery items
   List<DeliveryItem> _deliveryItems = [];
@@ -131,25 +156,25 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
                     },
                   ),
                   SizedBox(height:16),
-                  FormBuilderTextField(
-                      name: 'address',
-                      initialValue: widget.user.claims['address'].toString().toCapitalCase(),
-                      decoration: const InputDecoration(
-                        labelText: 'Address',
-                        contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
-                      ),
-                      validator: FormBuilderValidators.compose(
-                          [
-                            FormBuilderValidators.required(),
-                            // Regex will pass following variations: 407/82 Hay St, A314/1 O'Brien Street, (LOT1022) 60 Johnston Rd, 17 Jump St, LOT1022 Johnston Rd, (LOT1022) Johnston Rd
-                            // Regex uses negative lookaheads in the optional 1st group and 2nd group to not pass if there's a 0 in the format 0/1, A0/1, (LOT0000), LOT0000 or 0
-                            // More advanced validation will require an API
-                            FormBuilderValidators.street(regex: RegExp(r"^(?![A-Za-z]*0|\(?LOT0000)([a-zA-Z0-9\/\(\)]*)\s?(?!0)[1-9]*[0-9]*\s[a-zA-Z']+\s[a-zA-Z]+$")),
-                            FormBuilderValidators.minWordsCount(3)
-                          ]),
-                      onChanged: (val) {
-                          print(val); // Print the text value write into TextField
-                      },
+                  AddressAutocompleteTextField(
+                    mapsApiKey: 'AIzaSyCC1vW62OlRZFFo1skbh9q-zLVVkWKT484',
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      contentPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
+                    ),
+                    componentCountry: 'au',
+                    language: 'en',
+                    onSuggestionClick: (Place placeDetails) {
+                      _selectedAddress = placeDetails.formattedAddress ?? '';
+                      _selectedStreetNumber = placeDetails.streetNumber ?? '';
+                      _selectedStreet = placeDetails.street ?? '';
+                      _selectedSuburb = placeDetails.city ?? '';
+                      _selectedState = placeDetails.stateShort ?? '';
+                      _selectedPostcode = placeDetails.zipCode ?? '';
+
+                      _addressController.text = _selectedAddress;
+                    },
                   ),
                   SizedBox(height:16),
                   FormBuilderTextField(
@@ -389,8 +414,29 @@ class _CaretakerHomePageState extends State<CaretakerHomePage> with SingleTicker
             )
             .toList();
 
+      final addressProjection = buildAddressClaimProjection(widget.user.claims);
+
+      final bool hasAutocompleteSelection =
+          _selectedAddress.trim().isNotEmpty &&
+          (_selectedStreet.isNotEmpty || _selectedStreetNumber.isNotEmpty || _selectedSuburb.isNotEmpty || _selectedState.isNotEmpty || _selectedPostcode.isNotEmpty);
+
+      if (hasAutocompleteSelection) {
+        addressProjection['address'] = _selectedAddress;
+        addressProjection['suburb'] = _selectedSuburb.isNotEmpty ? _selectedSuburb : addressProjection['suburb'] ?? '';
+        addressProjection['state'] = _selectedState.isNotEmpty ? _selectedState : addressProjection['state'] ?? '';
+        addressProjection['streetNumber'] = _selectedStreetNumber.isNotEmpty ? _selectedStreetNumber : addressProjection['streetNumber'] ?? '';
+        addressProjection['street'] = _selectedStreet.isNotEmpty ? _selectedStreet : addressProjection['street'] ?? '';
+        addressProjection['postcode'] = _selectedPostcode.isNotEmpty ? _selectedPostcode : addressProjection['postcode'] ?? '';
+      }
+
       final finalPayload = {
         ...formData,
+        'address': addressProjection['address'],
+        'suburb': addressProjection['suburb'],
+        'state': addressProjection['state'],
+        'streetNumber': addressProjection['streetNumber'],
+        'street': addressProjection['street'],
+        'postcode': addressProjection['postcode'],
         'request_ID': "Request_${DateTime.now().millisecondsSinceEpoch}",
         'timestamp': DateTime.now().toIso8601String(),
         "assigned_User_ID": null,

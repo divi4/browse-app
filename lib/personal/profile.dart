@@ -8,12 +8,15 @@ import '../auth/user_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:change_case/change_case.dart';
+import 'package:google_maps_places_autocomplete_widgets/address_autocomplete_widgets.dart';
+import 'dart:convert';
 
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../models/image.dart';
+import '../models/request.dart';
 import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileRoute extends StatelessWidget {
 
@@ -50,6 +53,8 @@ class Profile extends StatefulWidget {
 }
 
 class _Profile extends State<Profile> {
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
   @override
   void initState() {
     super.initState();
@@ -67,16 +72,39 @@ class _Profile extends State<Profile> {
     try {
       await s3Manager.getS3Image(widget.user.claims['picture']);
     } catch (e) {
-      print('Error loading from S3: $e');
+      debugPrint('Error loading from S3: $e');
     }
   }
 
-  void _onImageSelected(File? image) async {
+  Future<void> _pickProfileImage() async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected')),
+        );
+      }
+      return;
+    }
+
+    final image = File(picked.path);
+    setState(() {
+      _profileImage = image;
+    });
+
+    await _onImageSelected(image);
+  }
+
+  Future<void> _onImageSelected(File? image) async {
     try {
-      await s3Manager.putS3Image(widget.user.claims['picture']);
-      await _loadProfileFromS3();
+      if (image != null) {
+        await s3Manager.putS3Image(widget.user.claims['picture']);
+        await _loadProfileFromS3();
+      }
     } catch (e) {
-      print('Error updating profile picture: $e');
+      debugPrint('Error updating profile picture: $e');
     }
   }
 
@@ -203,6 +231,178 @@ class _Profile extends State<Profile> {
     );
   }
 
+  // ===== ADDRESS EDIT DIALOG WITH AUTOCOMPLETE =====
+  void _showAddressEditDialog() {
+    final TextEditingController addressController = TextEditingController();
+    String selectedAddress = '';
+    String selectedStreetNumber = '';
+    String selectedStreet = '';
+    String selectedSuburb = '';
+    String selectedState = '';
+    String selectedPostcode = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Address'),
+              content: SizedBox(
+                width: MediaQuery.of(dialogContext).size.width * 0.9,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Start typing your address and select from the suggestions',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    AddressAutocompleteTextField(
+                      mapsApiKey: 'AIzaSyCC1vW62OlRZFFo1skbh9q-zLVVkWKT484',
+                      controller: addressController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter your address',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      componentCountry: 'au',
+                      language: 'en',
+                      onSuggestionClick: (Place placeDetails) {
+                        setDialogState(() {
+                          selectedAddress = placeDetails.formattedAddress ?? '';
+                          selectedStreetNumber = placeDetails.streetNumber ?? '';
+                          selectedStreet = placeDetails.street ?? '';
+                          selectedSuburb = placeDetails.city ?? '';
+                          selectedState = placeDetails.stateShort ?? '';
+                          selectedPostcode = placeDetails.zipCode ?? '';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    if (selectedAddress.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'Selected: $selectedAddress',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (selectedAddress.isNotEmpty) {
+                      _updateUserAddress(
+                        address: selectedAddress,
+                        streetNumber: selectedStreetNumber,
+                        street: selectedStreet,
+                        suburb: selectedSuburb,
+                        state: selectedState,
+                        postCode: selectedPostcode,
+                      );
+                      Navigator.pop(dialogContext);
+                    } else {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a valid address from the suggestions'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _buildAddressSummary() {
+    return buildAddressSummaryFromClaims(widget.user.claims);
+  }
+
+  // ===== UPDATE USER ADDRESS IN COGNITO =====
+  Future<void> _updateUserAddress({
+    required String address,
+    required String streetNumber,
+    required String street,
+    required String suburb,
+    required String state,
+    required String postCode,
+  }) async {
+    // Build the full address string
+    final fullAddress = '$streetNumber $street, $suburb, $state $postCode';
+
+    try {
+      // Show loading indicator using the app-level messenger key.
+      if (mounted) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text('Updating address...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      // Update local claims first
+      setState(() {
+        widget.user.claims['address'] = fullAddress;
+        widget.user.claims['custom:suburb'] = suburb;
+        widget.user.claims['custom:state'] = state;
+        widget.user.claims['custom:streetNumber'] = streetNumber;
+        widget.user.claims['custom:street'] = street;
+        widget.user.claims['custom:postcode'] = postCode;
+      });
+
+      // Update in Cognito
+      await updateUserAttributes({
+        'address': fullAddress,
+        'custom:suburb': suburb,
+        'custom:state': state,
+        'custom:streetNumber': streetNumber,
+        'custom:street': street,
+        'custom:postcode': postCode,
+      });
+
+      // Save updated claims to local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_attributes_${widget.user.username}', json.encode(widget.user.claims));
+
+      if (mounted) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text('Address updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error updating address: $e');
+      if (mounted) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text('Failed to update address: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   FormFieldValidator<String> getValidatorForKeys(String key) {
     switch (key) {
       case 'birthdate':
@@ -217,20 +417,6 @@ class _Profile extends State<Profile> {
         return FormBuilderValidators.firstName();
       case 'family_name':
         return FormBuilderValidators.lastName();
-      case 'custom:suburb':
-        return FormBuilderValidators.compose([
-          FormBuilderValidators.required(),
-          FormBuilderValidators.match(
-            RegExp(r"^[A-Za-z][A-Za-z\s'-]*$"),
-            errorText: 'Please enter a suburb name',
-          ),
-        ]);
-      case 'custom:address':
-        return FormBuilderValidators.street(
-          regex: RegExp(
-            r"^(?![A-Za-z]*0|\(?LOT0000)([a-zA-Z0-9\/\(\)]*)\s?(?!0)[1-9]*[0-9]*\s[a-zA-Z']+\s[a-zA-Z]+$",
-          ),
-        );
       default:
         throw ('No validator available');
     }
@@ -242,6 +428,7 @@ class _Profile extends State<Profile> {
         '${widget.user.claims['given_name'].toString().toCapitalCase()}\'s profile';
 
     return MaterialApp(
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: ThemeData(
         listTileTheme: const ListTileThemeData(textColor: Colors.black),
         scaffoldBackgroundColor: const Color.fromRGBO(245, 245, 237, 1),
@@ -310,11 +497,7 @@ class _Profile extends State<Profile> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit),
-                    onPressed: () {
-                      ImagePickerWidget(
-                        onImageSelected: _onImageSelected,
-                      );
-                    },
+                    onPressed: _pickProfileImage,
                   ),
                 ],
               ),
@@ -345,12 +528,14 @@ class _Profile extends State<Profile> {
                   ),
                   Expanded(
                     child: Text(
-                        '${widget.user.claims['address'].toString().toCapitalCase()}, ${widget.user.claims['custom:suburb'].toString().toCapitalCase()}'),
+                      _buildAddressSummary(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () {
-                      showEditDialogTwo('address', 'custom:suburb', 'Address');
+                      _showAddressEditDialog();
                     },
                   ),
                 ],
@@ -420,8 +605,8 @@ Future<void> updateUserAttributes(Map<String, String> attributes) async {
   final success = await authService.updateUserAttributes(attributes, password!);
 
   if (success) {
-    print("Attributes updated successfully");
+    debugPrint('Attributes updated successfully');
   } else {
-    print("Attributes weren't updated");
+    debugPrint("Attributes weren't updated");
   }
 }
